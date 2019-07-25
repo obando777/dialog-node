@@ -449,16 +449,22 @@ if(OS != 'linux' && OS != 'darwin' && OS != 'win32')
     else if( OS === 'darwin')
     {
       message = message.replace(/"/g, "'"); // double quotes to single quotes
-      cmd.push('osascript', '-e');
 
-      const script = 'set theDocument to choose file with prompt "' + message + '"';
-      cmd.push(script);
+
+      const script =
+          "const app = Application.currentApplication(); " +
+          "app.includeStandardAdditions = true; " +
+          "const document = app.chooseFile({withPrompt: \"" + message + "\" }); " +
+          "console.log(\"text returned: \"+document);";
+
+      cmd.push('osascript', '-l', 'JavaScript', '-e', script);
 
       cb = function(code, stdout, stderr){
         //parse return from appl script code
-        const findstr = 'text returned:';
-        retVal = stdout.slice(stdout.indexOf('text returned:') + findstr.length, -1);
-
+        const findstr = "text returned:";
+        retVal = stdout.slice(stdout.indexOf(findstr) + findstr.length, -1).trim();
+        if(!retVal)
+            retVal = stderr.slice(stderr.indexOf(findstr) + findstr.length, -1).trim();
         if(callback)
           callback(code, retVal, stderr);
         return retVal;
